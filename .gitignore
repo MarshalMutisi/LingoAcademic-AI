@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+env/
+venv/
+.venv/
+
+# Environment
+.env
+
+# Cloud Credentials
+credentials.json
+token.json
+
+# Temporary Files
+.tmp/
+*.log
+
+# Node
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
