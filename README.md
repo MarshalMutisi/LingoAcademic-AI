@@ -63,6 +63,3 @@ The project follows a **3-Layer Architecture**:
 For a deep dive into how the system works, the agents' logic, and the implementation history, see [DOCUMENTATION.md](./DOCUMENTATION.md).
 
 ---
-
-## ⚖️ License
-MIT License - Created for Academic Excellence.
