@@ -82,5 +82,8 @@ The project follows a **3-Layer Architecture**:
 For a deep dive into how the system works, the agents' logic, and the implementation history, see [DOCUMENTATION.md](./DOCUMENTATION.md).
 
 ---
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> ebbb8c0d5165e73b1a12c2a0def5cb708a0ef6cf
