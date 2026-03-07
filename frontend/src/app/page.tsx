@@ -39,7 +39,7 @@ export default function LingoAcademicPremium() {
     if (status === "processing") {
       interval = setInterval(async () => {
         try {
-          const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          const backendUrl = process.env.NEXT_PUBLIC_API_URL || "";
           const res = await fetch(`${backendUrl}/status`);
           const data = await res.json();
 
@@ -62,6 +62,9 @@ export default function LingoAcademicPremium() {
           }
         } catch (err) {
           console.error("Polling error:", err);
+          setStatus("error");
+          setMessage("Failed to connect to backend for status updates.");
+          clearInterval(interval);
         }
       }, 2000);
     }
@@ -79,18 +82,21 @@ export default function LingoAcademicPremium() {
 
     try {
       // Determine the backend URL — env var for production, localhost for dev
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "";
       const res = await fetch(`${backendUrl}/process`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: inputText, api_key: apiKey }),
       });
 
-      if (!res.ok) throw new Error("Failed to start process");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "Failed to start process");
+      }
 
-    } catch (err) {
+    } catch (err: any) {
       setStatus("error");
-      setMessage("Connection to backend failed. Please ensure your Python server is running.");
+      setMessage("Backend connection failed. Please ensure your server is running.");
     }
   };
 

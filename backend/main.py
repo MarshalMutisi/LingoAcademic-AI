@@ -1,4 +1,5 @@
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import sys
@@ -6,6 +7,8 @@ import json
 import time
 from collections import defaultdict
 from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 # Add root to path so we can import orchestrator and utils
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -22,6 +25,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Static files path (Next.js export)
+FRONTEND_OUT = os.path.join(os.path.dirname(__file__), "..", "frontend", "out")
 STATUS_FILE = os.path.join(os.path.dirname(__file__), "..", ".tmp", "web_status.json")
 
 # ---------------------------------------------------------------------------
@@ -130,6 +135,19 @@ async def process_text(request: ProcessRequest, req: Request, background_tasks: 
     )
     return {"status": "started", "message": "Research and writing analysis initiated."}
 
+
+# Serve Frontend Static Files
+if os.path.exists(FRONTEND_OUT):
+    # Mount the 'out' directory for static files (html, css, js)
+    app.mount("/", StaticFiles(directory=FRONTEND_OUT, html=True), name="frontend")
+    
+    # Catch-all route to serve index.html for client-side routing
+    @app.exception_handler(404)
+    async def not_found_exception_handler(request: Request, exc: Exception):
+        # Only reroute to index.html if the request is not for the API
+        if not request.url.path.startswith("/status") and not request.url.path.startswith("/process"):
+            return FileResponse(os.path.join(FRONTEND_OUT, "index.html"))
+        return JSONResponse(status_code=404, content={"detail": "Not found"})
 
 if __name__ == "__main__":
     import uvicorn
