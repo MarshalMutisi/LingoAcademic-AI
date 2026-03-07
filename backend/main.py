@@ -60,9 +60,9 @@ class ProcessRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
-# @app.get("/")
-# def read_root():
-#     return {"message": "LingoAcademic AI Backend is running"}
+@app.get("/")
+async def read_root():
+    return FileResponse(os.path.join(FRONTEND_OUT, "index.html"))
 
 
 @app.get("/status")
