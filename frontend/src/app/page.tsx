@@ -16,12 +16,16 @@ import {
   Terminal,
   Download,
   Copy,
-  Plus
+  Plus,
+  KeyRound,
+  ChevronDown
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 
 export default function LingoAcademicPremium() {
   const [inputText, setInputText] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [showApiKey, setShowApiKey] = useState(false);
   const [status, setStatus] = useState("idle"); // idle, processing, completed, error
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState("Ready to start your research.");
@@ -35,7 +39,8 @@ export default function LingoAcademicPremium() {
     if (status === "processing") {
       interval = setInterval(async () => {
         try {
-          const res = await fetch("http://localhost:8000/status");
+          const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+          const res = await fetch(`${backendUrl}/status`);
           const data = await res.json();
 
           if (data.status === "processing") {
@@ -73,10 +78,12 @@ export default function LingoAcademicPremium() {
     setResult("");
 
     try {
-      const res = await fetch("http://localhost:8000/process", {
+      // Determine the backend URL — env var for production, localhost for dev
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${backendUrl}/process`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: inputText }),
+        body: JSON.stringify({ text: inputText, api_key: apiKey }),
       });
 
       if (!res.ok) throw new Error("Failed to start process");
@@ -142,6 +149,34 @@ export default function LingoAcademicPremium() {
                   placeholder="Enter your research prompt..."
                   className="w-full h-56 bg-white border border-slate-200 rounded-2xl p-5 text-sm leading-relaxed text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all resize-none shadow-sm"
                 />
+
+                {/* ---- Optional API Key (BYOK) ---- */}
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-primary transition-colors"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    Use your own Gemini API key (optional)
+                    <ChevronDown className={`w-3 h-3 transition-transform ${showApiKey ? "rotate-180" : ""}`} />
+                  </button>
+                  {showApiKey && (
+                    <div className="mt-2">
+                      <input
+                        type="password"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        disabled={status === "processing"}
+                        placeholder="AIza..."
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all font-mono"
+                      />
+                      <p className="text-[10px] text-slate-400 mt-1.5 leading-tight">
+                        Your key is sent only to the backend and never stored. Leave blank to use the shared key.
+                      </p>
+                    </div>
+                  )}
+                </div>
 
                 <button
                   onClick={handleSubmit}

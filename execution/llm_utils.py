@@ -15,9 +15,11 @@ def call_llm(prompt, system_prompt="You are a helpful assistant.", model=None):
     """
     Standard interface for LLM calls using Google Gemini with automatic model fallback and key rotation.
     """
+    # If the backend set a user-provided key for this request, use it first
+    override_key = os.getenv("GEMINI_API_KEY_OVERRIDE")
     api_key = os.getenv("GEMINI_API_KEY")
     api_key_2 = os.getenv("GEMINI_API_KEY_2")
-    keys = [k for k in [api_key, api_key_2] if k]
+    keys = [k for k in [override_key, api_key, api_key_2] if k]
 
     if not keys:
         return "Error: No GEMINI_API_KEY found in .env"

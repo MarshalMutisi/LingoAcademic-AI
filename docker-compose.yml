@@ -1,0 +1,28 @@
+services:
+  # -------------------------------------------------------
+  # FastAPI Backend
+  # -------------------------------------------------------
+  backend:
+    build: .
+    command: python backend/main.py
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - ./.tmp:/app/.tmp   # persist status files between restarts
+    restart: unless-stopped
+
+  # -------------------------------------------------------
+  # Next.js Frontend
+  # -------------------------------------------------------
+  frontend:
+    build: .
+    command: sh -c "cd frontend && npm start"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    restart: unless-stopped

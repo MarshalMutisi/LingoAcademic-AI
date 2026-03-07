@@ -1,8 +1,10 @@
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 import os
 import sys
 import json
+import time
+from collections import defaultdict
 from pydantic import BaseModel
 
 # Add root to path so we can import orchestrator and utils
@@ -22,13 +24,41 @@ app.add_middleware(
 
 STATUS_FILE = os.path.join(os.path.dirname(__file__), "..", ".tmp", "web_status.json")
 
+# ---------------------------------------------------------------------------
+# Rate Limiter: max 5 requests per IP per minute
+# ---------------------------------------------------------------------------
+RATE_LIMIT = 5        # max requests
+RATE_WINDOW = 60      # seconds
+_rate_store: dict = defaultdict(list)  # ip -> [timestamps]
+
+def check_rate_limit(ip: str):
+    now = time.time()
+    timestamps = _rate_store[ip]
+    # Drop timestamps older than the window
+    _rate_store[ip] = [t for t in timestamps if now - t < RATE_WINDOW]
+    if len(_rate_store[ip]) >= RATE_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded. Max {RATE_LIMIT} requests per minute."
+        )
+    _rate_store[ip].append(now)
+
+# ---------------------------------------------------------------------------
+# Request Models
+# ---------------------------------------------------------------------------
 class ProcessRequest(BaseModel):
     text: str
     max_iterations: int = 2
+    api_key: str = ""  # Optional: user's own Gemini API key
 
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
 @app.get("/")
 def read_root():
     return {"message": "LingoAcademic AI Backend is running"}
+
 
 @app.get("/status")
 def get_status():
@@ -37,48 +67,69 @@ def get_status():
             return json.load(f)
     return {"status": "idle"}
 
+
 def update_status(data):
+    os.makedirs(os.path.dirname(STATUS_FILE), exist_ok=True)
     with open(STATUS_FILE, "w") as f:
         json.dump(data, f)
 
-def background_process(text: str, max_iterations: int):
+
+def background_process(text: str, max_iterations: int, user_api_key: str):
     try:
         update_status({"status": "processing", "message": "Starting pipeline...", "progress": 10})
-        
-        # Run the existing pipeline
-        # For now, we reuse the existing file-based orchestrator
-        # We'll save the input to input.txt first
+
+        # If user provided their own key, use it; otherwise fall back to env var
+        if user_api_key:
+            os.environ["GEMINI_API_KEY_OVERRIDE"] = user_api_key
+        else:
+            os.environ.pop("GEMINI_API_KEY_OVERRIDE", None)
+
+        # Save the input text for the orchestrator
         input_path = os.path.join(os.path.dirname(__file__), "..", "input_web.txt")
         with open(input_path, "w", encoding="utf-8") as f:
             f.write(text)
-        
+
         run_orchestrator(input_path, max_iterations=max_iterations)
-        
+
         # Read the final output to send back
         final_output_path = os.path.join(os.path.dirname(__file__), "..", "final_academic_output.md")
         final_text = ""
         if os.path.exists(final_output_path):
             with open(final_output_path, "r", encoding="utf-8") as f:
                 final_text = f.read()
-                
+
         update_status({
-            "status": "completed", 
-            "message": "Pipeline finished!", 
+            "status": "completed",
+            "message": "Pipeline finished!",
             "result": final_text,
             "progress": 100
         })
     except Exception as e:
         print(f"ERROR IN BACKGROUND PROCESS: {str(e)}")
         update_status({
-            "status": "error", 
-            "message": f"Pipeline failed: {str(e)}", 
+            "status": "error",
+            "message": f"Pipeline failed: {str(e)}",
             "progress": 0
         })
+    finally:
+        # Always clean up the override so it doesn't bleed into subsequent requests
+        os.environ.pop("GEMINI_API_KEY_OVERRIDE", None)
+
 
 @app.post("/process")
-def process_text(request: ProcessRequest, background_tasks: BackgroundTasks):
-    background_tasks.add_task(background_process, request.text, request.max_iterations)
+async def process_text(request: ProcessRequest, req: Request, background_tasks: BackgroundTasks):
+    # Rate limit by client IP
+    client_ip = req.client.host if req.client else "unknown"
+    check_rate_limit(client_ip)
+
+    background_tasks.add_task(
+        background_process,
+        request.text,
+        request.max_iterations,
+        request.api_key,
+    )
     return {"status": "started", "message": "Research and writing analysis initiated."}
+
 
 if __name__ == "__main__":
     import uvicorn

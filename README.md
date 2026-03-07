@@ -1,6 +1,12 @@
 # 🎓 LingoAcademic AI
 
-**LingoAcademic AI** is a premium agentic pipeline designed to bridge the gap between English research and native-level German academic writing. It leverages a sophisticated 3-agent system (Librarian, Writer, and Professor) to research, draft, and audit academic content with high precision.
+[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Gemini](https://img.shields.io/badge/Google%20Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://ai.google.dev/)
+[![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white)](https://github.com/MarshalMutisi/LingoAcademic-AI)
+
+**LingoAcademic AI** is a premium agentic pipeline designed to bridge the gap between English research and native-level German academic writing.
+
+[**🌐 View Live Demo**](https://your-live-link.com) | [**📜 Read Documentation**](./DOCUMENTATION.md)
 
 ---
 
@@ -29,6 +35,13 @@ GEMINI_API_KEY_2=your_fallback_key (optional)
 ```
 
 ### 3. Launch the Application
+
+**Option A: Using Docker (Recommended)**
+```bash
+docker compose up --build
+```
+
+**Option B: Manual Setup**
 Run the unified server script:
 ```powershell
 python run_web.py
@@ -37,6 +50,12 @@ python run_web.py
 - **Frontend**: http://localhost:3000
 
 ---
+
+## 🚀 Deployment
+
+The project is designed to be easily deployed to **Render** or **Railway** using the provided `Dockerfile`. 
+
+For step-by-step instructions on going live, see [**deployment_guide.md**](./deployment_guide.md).
 
 ## 🏗️ Architecture
 
@@ -64,5 +83,4 @@ For a deep dive into how the system works, the agents' logic, and the implementa
 
 ---
 
-## ⚖️ License
-MIT License - Created for Academic Excellence.
+
